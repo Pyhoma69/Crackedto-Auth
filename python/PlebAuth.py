@@ -4,16 +4,16 @@ import subprocess
 import uuid
 import os
 import requests
+import hashlib
+
+
+
 
 def auth() -> None:
-    if system().lower() == 'windows':
-        hwid =  subprocess.check_output('wmic csproduct get uuid').decode()
-        hwid = hwid.split('\n')[1].strip()
-    elif system().lower() == 'linux':
-        hwid = subprocess.check_output(['cat', '/var/lib/dbus/machine-id'])
-        hwid = str(uuid.uuid3(uuid.NAMESPACE_DNS, hwid.strip().decode()))
-    else:
-        hwid = str(uuid.getnode())
+    systemID = subprocess.check_output('wmic csproduct get uuid').decode().split('\n')[1].strip()
+    procID = subprocess.check_output('wmic cpu get ProcessorId').decode().split('\n')[1].strip()
+    
+    hwid = hashlib.sha256((procID + systemID).encode('utf-8')).hexdigest()
     
     if os.path.isfile('key.txt'):
         with open('key.txt') as f:
