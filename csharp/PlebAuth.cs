@@ -10,11 +10,29 @@ using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
+using System.Security.Cryptography;
 
 namespace CrackedAuth
 {
     internal class Auth
     {
+        static string ComputeSha256Hash(string rawData)  
+        {  
+            // Create a SHA256   
+            using (SHA256 sha256Hash = SHA256.Create())  
+            {  
+                // ComputeHash - returns byte array  
+                byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(rawData));  
+  
+                // Convert byte array to a string   
+                StringBuilder builder = new StringBuilder();  
+                for (int i = 0; i < bytes.Length; i++)  
+                {  
+                    builder.Append(bytes[i].ToString("x2"));  
+                }  
+                return builder.ToString();  
+            }  
+        }  
         public static void login()
         {
             string KEY = "";
@@ -27,28 +45,27 @@ namespace CrackedAuth
                 Console.WriteLine("Auth Key: ");
                 KEY = Console.ReadLine();
             }
-            string text = null;
-            if (string.IsNullOrEmpty(text))
+               
+            
+            ManagementObjectCollection mbsList = null;
+            ManagementObjectSearcher mos = new ManagementObjectSearcher("Select ProcessorID From Win32_processor");
+            mbsList = mos.Get();
+            string processorId = string.Empty;
+            foreach (ManagementBaseObject mo in mbsList)
             {
-                foreach (DriveInfo driveInfo in DriveInfo.GetDrives())
-                {
-                    if (driveInfo.IsReady)
-                    {
-                        text = driveInfo.RootDirectory.ToString();
-                        break;
-                    }
-                }
+                processorId = mo["ProcessorID"] as string;
             }
-            if (!string.IsNullOrEmpty(text) && text.EndsWith(":\\"))
+
+            mos = new ManagementObjectSearcher("SELECT UUID FROM Win32_ComputerSystemProduct");
+            mbsList = mos.Get();
+            string systemId = string.Empty;
+            foreach (ManagementBaseObject mo in mbsList)
             {
-                text = text.Substring(0, text.Length - 2);
+                systemId = mo["UUID"] as string;
             }
-            string str;
-            using (ManagementObject managementObject = new ManagementObject("win32_logicaldisk.deviceid=\"" + text + ":\""))
-            {
-                managementObject.Get();
-                str = managementObject["VolumeSerialNumber"].ToString();
-            }
+
+            string str = ComputeSha256Hash($"{processorId}{systemId}");
+            
             HttpWebRequest httpWebRequest = WebRequest.Create("https://cracked.io/auth.php") as HttpWebRequest;
             httpWebRequest.Proxy = null;
             HttpWebRequest httpWebRequest2 = httpWebRequest;
