@@ -4,6 +4,7 @@ import subprocess
 import uuid
 import os
 import requests
+import hashlib
 
 def auth() -> None:
     # 11 - id of Premium
@@ -11,14 +12,10 @@ def auth() -> None:
     # 93 - id of Infinity
     premiumPlus = ['11', '12', '93', '96', '97', '99', '100', '101', '4', '3', '6', '94', '92']
  
-    if system().lower() == 'windows':
-        hwid =  subprocess.check_output('wmic csproduct get uuid').decode()
-        hwid = hwid.split('\n')[1].strip()
-    elif system().lower() == 'linux':
-        hwid = subprocess.check_output(['cat', '/var/lib/dbus/machine-id'])
-        hwid = str(uuid.uuid3(uuid.NAMESPACE_DNS, hwid.strip().decode()))
-    else:
-        hwid = str(uuid.getnode())
+    systemID = subprocess.check_output('wmic csproduct get uuid').decode().split('\n')[1].strip()
+    procID = subprocess.check_output('wmic cpu get ProcessorId').decode().split('\n')[1].strip()
+    
+    hwid = hashlib.sha256((procID + systemID).encode('utf-8')).hexdigest()
     
     if os.path.isfile('key.txt'):
         with open('key.txt') as f:
